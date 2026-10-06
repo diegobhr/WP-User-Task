@@ -35,6 +35,7 @@ from playwright.sync_api import sync_playwright
 
 URL = "https://agentes.stps.gob.mx/Buscador/BuscadorAgente.aspx"
 DEBUG_DIR = Path("debug")
+TERMINOS_DIR = Path("terminos")
 PATRON_BOTON = re.compile(r"buscar|consultar|search", re.I)
 
 
@@ -184,6 +185,7 @@ def main():
     args = ap.parse_args()
 
     DEBUG_DIR.mkdir(exist_ok=True)
+    TERMINOS_DIR.mkdir(exist_ok=True)
     encabezados, registros = [], []
 
     with sync_playwright() as p:
@@ -196,13 +198,26 @@ def main():
 
         if args.texto:
             for termino in [t.strip() for t in args.texto.split(",") if t.strip()]:
+                etiqueta = "texto_" + re.sub(r"\W+", "_", termino)
+                archivo = TERMINOS_DIR / f"{etiqueta}.csv"
+                if archivo.exists():  # ya hecho en una corrida anterior
+                    with open(archivo, newline="", encoding="utf-8-sig") as f:
+                        filas_csv = list(csv.reader(f))
+                    encabezados = encabezados or filas_csv[0]
+                    registros.extend(filas_csv[1:])
+                    print(f"'{termino}' ya existe ({len(filas_csv) - 1} filas), se omite", flush=True)
+                    continue
                 page.goto(args.url, wait_until="networkidle")
                 page.fill(args.campo, termino)
-                etiqueta = "texto_" + re.sub(r"\W+", "_", termino)
                 print(f"Buscando '{termino}'", flush=True)
                 enc, filas = extraer_busqueda(page, args, etiqueta)
                 encabezados = encabezados or enc
                 registros.extend(filas)
+                with open(archivo, "w", newline="", encoding="utf-8-sig") as f:
+                    w = csv.writer(f)
+                    w.writerow(enc)
+                    w.writerows(filas)
+                print(f"'{termino}' guardado en {archivo} ({len(filas)} filas)", flush=True)
                 time.sleep(args.pausa)
         elif args.iterar_select:
             opciones = elegir_select(page, args.iterar_select).locator("option")
