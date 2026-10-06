@@ -1,10 +1,11 @@
 """
-Descarga el padrón oficial de Agentes Capacitadores Externos que la STPS
-publica como datos abiertos (CSV). Es más rápido y confiable que el scraper.
+Descarga el CSV de datos abiertos de la STPS sobre Agentes Capacitadores
+Externos. Contiene estadísticas agregadas (por entidad/periodo/modalidad); para
+el listado individual usa scraper_stps.py.
 
 Uso:
-    python descargar_datos_abiertos.py            # guarda capacitadores_stps.csv
-    python cargar_sqlite.py capacitadores_stps.csv capacitadores.db
+    python descargar_datos_abiertos.py            # guarda estadisticas_stps.csv
+    python cargar_sqlite.py estadisticas_stps.csv estadisticas.db
 """
 
 import sys
@@ -16,7 +17,7 @@ URLS = [
 ]
 
 
-def main(salida="capacitadores_stps.csv"):
+def main(salida="estadisticas_stps.csv"):
     for url in URLS:
         try:
             print(f"Descargando {url} ...")

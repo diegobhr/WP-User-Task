@@ -11,17 +11,22 @@ pip install playwright
 playwright install chromium
 ```
 
-## Opción A (recomendada): datos abiertos oficiales
+## Opción A: datos abiertos oficiales (estadísticas)
 
-La STPS publica el padrón completo en CSV
-(`datosabiertos.stps.gob.mx/Datos/DGCAPL/Registro_Agentes_Externos.csv`):
+La STPS publica en [datos.gob.mx](https://www.datos.gob.mx/dataset/agentes_capacitadores_externos_registrados_stps)
+un CSV trimestral que, según su descripción, trae **conteos agregados**
+(agentes por entidad, periodo y modalidad), no el listado de cada capacitador.
+Sirve como tabla de catálogo/estadística para tu base:
 
 ```bash
 python descargar_datos_abiertos.py
-python cargar_sqlite.py capacitadores_stps.csv capacitadores.db
+python cargar_sqlite.py estadisticas_stps.csv estadisticas.db
 ```
 
-## Opción B: scraper del buscador
+## Opción B: scraper del buscador (listado individual)
+
+Para obtener cada capacitador (nombre, RFC, registro, entidad…) hay que usar el
+buscador:
 
 ```bash
 # 1. Prueba rápida (2 páginas, viendo el navegador)
