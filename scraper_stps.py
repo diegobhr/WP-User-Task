@@ -118,7 +118,8 @@ def tabla_resultados(page):
 
 def siguiente_pagina(page, actual):
     """Link del pager hacia la página actual+1 (incluye el '...' de GridView)."""
-    for patron in (f"Page${actual + 1}'", "Page$Next'"):
+    for patron in (f"Page${actual + 1}'", "Page$Next'",
+                   f"navegador$lnk{actual + 1}'", "navegador$lnkSiguiente'"):
         link = page.locator(f"a[href*=\"{patron}\"]")
         if link.count():
             return link.first
@@ -132,6 +133,8 @@ def extraer_busqueda(page, args, etiqueta):
         (DEBUG_DIR / f"{etiqueta}_p{pagina}.html").write_text(page.content(), "utf-8")
         enc, filas = tabla_resultados(page)
         encabezados = encabezados or enc
+        if filas and filas_totales and filas[0] == filas_totales[-len(filas)]:
+            break  # el pager no avanzó: ya estamos en la última página
         filas_totales.extend(filas)
         print(f"  [{etiqueta}] página {pagina}: {len(filas)} filas "
               f"(acumulado {len(filas_totales)})", flush=True)
@@ -167,6 +170,10 @@ def main():
     ap.add_argument("--boton", help="selector CSS del botón de búsqueda (auto si se omite)")
     ap.add_argument("--iterar-select", metavar="SELECTOR|auto",
                     help="hacer una búsqueda por cada opción de este <select>")
+    ap.add_argument("--texto", help="términos (3+ letras) separados por coma; una búsqueda por "
+                    "cada uno en el campo de nombre. El sitio exige al menos uno.")
+    ap.add_argument("--campo", default="#ctl00_MainContent_tbRazonSocial",
+                    help="selector CSS del campo donde se escribe --texto")
     ap.add_argument("--max-paginas", type=int, default=0, help="0 = sin límite")
     ap.add_argument("--pausa", type=float, default=1.5,
                     help="segundos entre peticiones (sé amable con el servidor)")
@@ -187,7 +194,17 @@ def main():
         page.goto(args.url, wait_until="networkidle")
         (DEBUG_DIR / "inicio.html").write_text(page.content(), "utf-8")
 
-        if args.iterar_select:
+        if args.texto:
+            for termino in [t.strip() for t in args.texto.split(",") if t.strip()]:
+                page.goto(args.url, wait_until="networkidle")
+                page.fill(args.campo, termino)
+                etiqueta = "texto_" + re.sub(r"\W+", "_", termino)
+                print(f"Buscando '{termino}'", flush=True)
+                enc, filas = extraer_busqueda(page, args, etiqueta)
+                encabezados = encabezados or enc
+                registros.extend(filas)
+                time.sleep(args.pausa)
+        elif args.iterar_select:
             opciones = elegir_select(page, args.iterar_select).locator("option")
             valores = [(opciones.nth(i).get_attribute("value"),
                         limpiar(opciones.nth(i).inner_text()))
