@@ -11,7 +11,17 @@ pip install playwright
 playwright install chromium
 ```
 
-## Uso
+## Opción A (recomendada): datos abiertos oficiales
+
+La STPS publica el padrón completo en CSV
+(`datosabiertos.stps.gob.mx/Datos/DGCAPL/Registro_Agentes_Externos.csv`):
+
+```bash
+python descargar_datos_abiertos.py
+python cargar_sqlite.py capacitadores_stps.csv capacitadores.db
+```
+
+## Opción B: scraper del buscador
 
 ```bash
 # 1. Prueba rápida (2 páginas, viendo el navegador)

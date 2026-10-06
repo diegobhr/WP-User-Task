@@ -1,11 +1,13 @@
 """
-Carga el CSV generado por scraper_stps.py en una base SQLite.
+Carga en SQLite el CSV de scraper_stps.py o de descargar_datos_abiertos.py
+(detecta separador , ; | o tabulador y codificación UTF-8 o latin-1).
 
 Uso:
     python cargar_sqlite.py capacitadores_stps.csv capacitadores.db
 """
 
 import csv
+import io
 import re
 import sqlite3
 import sys
@@ -19,10 +21,15 @@ def nombre_columna(texto, i):
 
 
 def main(csv_path="capacitadores_stps.csv", db_path="capacitadores.db"):
-    with open(csv_path, encoding="utf-8-sig", newline="") as f:
-        lector = csv.reader(f)
-        encabezados = next(lector)
-        filas = list(lector)
+    try:
+        texto = open(csv_path, encoding="utf-8-sig", newline="").read()
+    except UnicodeDecodeError:
+        texto = open(csv_path, encoding="latin-1", newline="").read()
+    dialecto = csv.Sniffer().sniff(texto[:5000], delimiters=",;|\t")
+    lector = csv.reader(io.StringIO(texto, newline=""), dialecto)
+    encabezados = next(lector)
+    filas = [f + [""] * (len(encabezados) - len(f)) for f in lector if any(f)]
+    filas = [f[:len(encabezados)] for f in filas]
 
     columnas, usados = [], set()
     for i, h in enumerate(encabezados):
