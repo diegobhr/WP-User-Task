@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Une la lista (capacitadores_stps.csv) con las fichas (detalle_stps.csv) en
 SQLite. Crea la tabla `agentes` (todos) y la vista `agentes_con_contacto`
-(solo los que tienen teléfono o fax; el correo es opcional).
+(solo los que tienen teléfono; el correo es opcional).
 
 Uso: python unir_y_filtrar.py [capacitadores.db]
 """
@@ -29,10 +29,10 @@ for r in lista:
         *(d.get(k, "") for k in ("imss", "tipo_institucion", "cp", "entidad", "municipio",
                                  "colonia", "calle", "localidad", "telefono", "fax", "correo"))))
 con.execute("""CREATE VIEW agentes_con_contacto AS SELECT * FROM agentes
-  WHERE TRIM(COALESCE(telefono,'')) <> '' OR TRIM(COALESCE(fax,'')) <> ''""")
+  WHERE TRIM(COALESCE(telefono,'')) <> ''""")
 con.commit()
 q = lambda s: con.execute(s).fetchone()[0]
 print("agentes:", q("SELECT COUNT(*) FROM agentes"),
-      "| con teléfono o fax:", q("SELECT COUNT(*) FROM agentes_con_contacto"),
+      "| con teléfono:", q("SELECT COUNT(*) FROM agentes_con_contacto"),
       "| de ellos con correo:",
       q("SELECT COUNT(*) FROM agentes_con_contacto WHERE TRIM(COALESCE(correo,''))<>''"))
