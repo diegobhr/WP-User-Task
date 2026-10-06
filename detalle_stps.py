@@ -63,12 +63,32 @@ def parsear(texto):
     return datos
 
 
-def consultar(page, rfc, timeout):
+def abrir_ficha(page, rfc, nombre, timeout):
+    """Busca por RFC; si el sitio no lo encuentra (pasa con RFC de 10 caracteres),
+    busca por nombre y abre la fila cuyo RFC coincide."""
     page.goto(URL, wait_until="networkidle")
     page.fill(CAMPO_RFC, rfc)
     page.click(BOTON)
+    try:
+        page.wait_for_selector("[id$=btnDatos]", timeout=8_000)
+        page.click("[id$=btnDatos]")
+        return
+    except Exception:  # noqa: BLE001
+        pass
+    page.goto(URL, wait_until="networkidle")
+    page.fill("#ctl00_MainContent_tbRazonSocial", nombre[:60])
+    page.click(BOTON)
     page.wait_for_selector("[id$=btnDatos]", timeout=timeout)
-    page.click("[id$=btnDatos]")
+    filas = page.locator("table#mytable tr", has=page.locator("[id$=btnDatos]"))
+    for i in range(filas.count()):
+        if rfc in filas.nth(i).inner_text():
+            filas.nth(i).locator("[id$=btnDatos]").click()
+            return
+    raise RuntimeError("RFC no aparece en la búsqueda por nombre")
+
+
+def consultar(page, rfc, nombre, timeout):
+    abrir_ficha(page, rfc, nombre, timeout)
     page.wait_for_selector("text=Datos del agente capacitador", timeout=timeout)
     page.wait_for_load_state("networkidle")
     texto = page.inner_text("body")
@@ -93,8 +113,9 @@ def main():
     args = ap.parse_args()
 
     with open(args.entrada, newline="", encoding="utf-8-sig") as f:
-        rfcs = [r["RFC"].strip() for r in csv.DictReader(f) if r.get("RFC", "").strip()]
-    rfcs = list(dict.fromkeys(rfcs))
+        nombres = {r["RFC"].strip(): r.get("Nombre o razón social", "")
+                   for r in csv.DictReader(f) if r.get("RFC", "").strip()}
+    rfcs = list(nombres)
 
     salida = Path(args.salida)
     hechos = set()
@@ -121,7 +142,7 @@ def main():
         for n, rfc in enumerate(pendientes, 1):
             for intento in (1, 2):
                 try:
-                    fila = consultar(page, rfc, args.timeout)
+                    fila = consultar(page, rfc, nombres[rfc], args.timeout)
                     w.writerow(fila)
                     out.flush()
                     print(f"[{n}/{len(pendientes)}] {rfc} tel={fila['telefono'] or '-'} "
